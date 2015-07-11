@@ -1,15 +1,48 @@
 $fn = 100;
 
+/*
+Originally I made a separate cutout for each thing, but that caused the small
+parts between adjacent cutouts to look messy. You might be able to fix that
+with retraction settings, but it is easier to just combine them all into one
+cutout per side. The worst part was actually the top of the earphone plug and
+main microphone cutout where it bridges that part. I gave up after that came
+out horribly messy even at 50% support structure infill.
+
+If your printer's retract settings are super dialled in for whatever flexible
+plastic you print this in, then you could try to set this to false and see how
+far you get.
+*/
+onePerSide = true;
+
 // set this to some multiple of your nozzle width
 shellWidth = 1.2;
 wallWidth = shellWidth;
 
-clearance = 0; // changing to 0 from 0.2
+/*
+Because I'm printing this with flexible filament it turned out that a snug fit
+is actually better than adding in clearance. Depending on your printer and the
+plastic you end up going with, you might have to tweak this to a small positive
+value in millimeters.
+*/
+clearance = 0;
 
-// how much to leave around the cutouts. this is tricky because of the
-// rounding, though, so kinda takes up the wallWidth and possibly the clearance
-// too.
-edge = 3.5;
+/*
+If your plastic is flexible enough to still be able to get the phone in there,
+yet firm enough for the entire case to not buckle, you can set this to true. It
+will then result in simmetrical top and bottom cutouts in stead of a closed up
+bottom with just the camera cut out. I found with my plastic that the sides are
+too lose in that case.
+*/
+openBottom = false;
+
+/*
+How much to leave around the top/bottom cutouts. This is tricky because of the
+rounding, though, so kinda takes up the wallWidth and possibly the clearance
+too. You might want to increase this if you go with an open bottom so that
+there's more plastic on the build plate and the part can actually stick down
+and also to firm up the edges a bit.
+*/
+edge = 2.4; // was 3.5
 
 // actual dimensions plus clearance
 length = 138.1 + 2*clearance;
@@ -60,6 +93,10 @@ micWidth = earphoneDiameter;
 micHeight = earphoneDiameter/2;
 micOffset = earphoneOffset+earphoneDiameter/2;
 
+soundWidth = 34.71 + 2*cutoutExtra;
+soundHeight = 2.8 + 2*cutoutExtra;
+soundOffset = 34.85;
+
 muteWidth = 5.61 + 2*cutoutExtra;
 muteHeight = 2.8 + 2*cutoutExtra;
 muteOffset = 20.3;
@@ -71,6 +108,12 @@ volumeOffset = 40.8;
 powerWidth = 12.2 + 2*cutoutExtra;
 powerHeight = 2.25 + 2*cutoutExtra;
 powerOffset = 34.49;
+
+cameraOffsetX = 6.88;
+cameraOffsetY = 13.31;
+//cameraDiameter = 9.71;
+cameraDiameter = 9; // or 8.24
+cameraGap = 10.05;
 
 // a three dimensional rounded rectangle
 module rounded(l, w, h, r) {
@@ -139,6 +182,17 @@ module bottomCutout() {
     r=cornerRadius-3); // why 3?
 }
 
+module cameraCutouts() {
+  translate([outsideLength-phoneOffset-cameraOffsetX, phoneOffset+cameraOffsetY, -0.1])
+  cylinder(d=cameraDiameter, h=wallWidth+1);
+
+  translate([outsideLength-phoneOffset-cameraOffsetX, phoneOffset+cameraOffsetY+cameraGap, -0.1])
+  cylinder(d=cameraDiameter, h=wallWidth+1);
+
+  translate([outsideLength-phoneOffset-cameraOffsetX-cameraDiameter/2, phoneOffset+cameraOffsetY, -0.1])
+  cube([cameraDiameter, cameraGap, wallWidth+1]);
+}
+
 module innerBrim() {
   brimLength = length-edge;
   brimWidth = width-edge;
@@ -170,6 +224,19 @@ module topCutout() {
     w=topCutoutWidth,
     h=wallWidth+1,
     r=cornerRadius-3); // why 3?
+}
+
+module portsCutout() {
+  portsHeight = earphoneDiameter;
+  portsOffset = min(earphoneOffset-earphoneDiameter/2, speakerOffset-speakerWidth/2);
+  portsWidth = width - 2*portsOffset;
+  translate([
+    0,
+    outsideWidth/2 - portsWidth/2,
+    outsideHeight/2 - portsHeight/2
+  ])
+  rotate([90, 0, 90])
+  rounded(portsWidth, portsHeight, cutoutDepth, portsHeight/2);
 }
 
 module earphoneCutout() {
@@ -212,6 +279,16 @@ module speakerCutout() {
   rounded(speakerWidth, speakerHeight, cutoutDepth, speakerHeight/2);
 }
 
+module soundCutout() {
+  translate([
+    outsideLength - phoneOffset - soundWidth/2 - soundOffset,
+    outsideWidth,
+    outsideHeight/2 - soundHeight/2
+  ])
+  rotate([90, 0, 0])
+  rounded(soundWidth, soundHeight, cutoutDepth, soundHeight/2);
+}
+
 module muteCutout() {
   translate([
     outsideLength - phoneOffset - muteWidth/2 - muteOffset,
@@ -245,7 +322,6 @@ module powerCutout() {
 module cover() {
   difference() {
     // make the outer shell
-    //shell();
     scale([xscale, yscale, zscale])
     phone();
 
@@ -253,38 +329,49 @@ module cover() {
     translate([wallWidth, wallWidth, wallWidth])
     phone();
 
-    // cut out the back side
+    // cut out the bottom
+    if (openBottom) {
     bottomCutout();
+    } else {
+      cameraCutouts();
+    }
 
-    // cut off the part above the screen
+    // cutout the top
     topCutout();
 
-    // cut out the hole for the charger
-    chargerCutout();
+    // cut out the bottom edge
+    if (onePerSide) {
+      portsCutout();
+    } else {
+      chargerCutout();
+      earphoneCutout();
+      micCutout();
+      speakerCutout();
+    }
 
-    // cut out the hole for the earphones
-    earphoneCutout();
+    // cut out the left edge
+    if (onePerSide) {
+      soundCutout();
+    } else {
+      muteCutout();
+      volumeCutout();
+    }
 
-    // the microphone next to the headphonephone socket
-    micCutout();
-
-    // cut out the speaker grill
-    speakerCutout();
-
-    // cut out the mute switch
-    muteCutout();
-
-    // cut out the volume buttons
-    volumeCutout();
-
-    // cut out the power button
+    // cut out the right edge
     powerCutout();
   }
+
   //innerBrim();
 }
 
-//rotate([0, 180, 0])
-//translate([-outsideLength/2, -outsideWidth/2, -outsideHeight])
-translate([-outsideLength/2, -outsideWidth/2, 0])
+translate([-outsideLength/2, -outsideWidth/2, 0]) {
 cover();
-//phone();
+/*
+chargerCutout();
+earphoneCutout();
+micCutout();
+speakerCutout();
+muteCutout();
+volumeCutout();
+*/
+}
