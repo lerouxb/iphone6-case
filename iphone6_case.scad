@@ -14,6 +14,15 @@ far you get.
 */
 onePerSide = true;
 
+/*
+If your plastic is flexible enough to still be able to get the phone in there,
+yet firm enough for the entire case to not buckle, you can set this to true. It
+will then result in simmetrical top and bottom cutouts in stead of a closed up
+bottom with just the camera cut out. I found with my plastic that the sides are
+too lose in that case.
+*/
+openBottom = false;
+
 // set this to some multiple of your nozzle width
 shellWidth = 1.2;
 wallWidth = shellWidth;
@@ -25,15 +34,6 @@ plastic you end up going with, you might have to tweak this to a small positive
 value in millimeters.
 */
 clearance = 0;
-
-/*
-If your plastic is flexible enough to still be able to get the phone in there,
-yet firm enough for the entire case to not buckle, you can set this to true. It
-will then result in simmetrical top and bottom cutouts in stead of a closed up
-bottom with just the camera cut out. I found with my plastic that the sides are
-too lose in that case.
-*/
-openBottom = false;
 
 /*
 How much to leave around the top/bottom cutouts. This is tricky because of the
